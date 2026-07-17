@@ -54,7 +54,20 @@ export default function App() {
 
         {auth.statusMessage ? (
           <div className="toast" role="status">
-            {auth.statusMessage}
+            <span>{auth.statusMessage.text}</span>
+            {auth.statusMessage.href ? (
+              <>
+                {' '}
+                <a
+                  className="toast__link"
+                  href={auth.statusMessage.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {auth.statusMessage.hrefLabel || 'Open'}
+                </a>
+              </>
+            ) : null}
           </div>
         ) : null}
 
@@ -78,6 +91,7 @@ export default function App() {
       <AddAccountPanel
         open={panel === 'add'}
         onClose={() => setPanel(null)}
+        hasRepoToken={Boolean(auth.settings.gitToken.trim())}
         onAdd={auth.addAccount}
       />
 
@@ -87,9 +101,16 @@ export default function App() {
         gitUrl={auth.settings.gitUrl}
         gitToken={auth.settings.gitToken}
         lastGitSync={auth.settings.lastGitSync}
-        onSaveConfig={(gitUrl, gitToken) =>
-          auth.updateSettings({ gitUrl, gitToken })
-        }
+        seedRepo={{
+          owner: auth.settings.seedRepoOwner,
+          repo: auth.settings.seedRepoName,
+          branch: auth.settings.seedRepoBranch,
+          path: auth.settings.seedRepoPath,
+        }}
+        onSaveConfig={(config) => {
+          auth.updateSettings(config)
+          auth.flash('Git / seed repo settings saved (token stays in this browser only)')
+        }}
         onSync={async (gitUrl, gitToken) => {
           await auth.syncFromGit({ gitUrl, gitToken })
         }}

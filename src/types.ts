@@ -22,10 +22,21 @@ export interface Account {
 export interface AppSettings {
   gitUrl: string
   gitToken: string
+  /** GitHub owner for seedAccounts.ts push (Contents API). */
+  seedRepoOwner: string
+  seedRepoName: string
+  seedRepoBranch: string
+  seedRepoPath: string
   groupBy: GroupBy
   timeOffsetSeconds: number
   lastClockSync: number | null
   lastGitSync: number | null
+}
+
+export type StatusMessage = {
+  text: string
+  href?: string
+  hrefLabel?: string
 }
 
 export interface SyncResult {

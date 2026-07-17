@@ -271,6 +271,43 @@
   animation: rise 0.25s ease both;
 }
 
+.toast__link {
+  color: #ffd9a0;
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
+
+.toast__link:hover {
+  color: #fff;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.checkbox-field input {
+  margin-top: 0.2rem;
+  width: auto;
+  accent-color: var(--accent, #e8a54b);
+}
+
+.checkbox-field__hint {
+  opacity: 0.7;
+}
+
+.drawer__section {
+  margin: 1.25rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 .empty {
   padding: 3rem 1.5rem;
   text-align: center;

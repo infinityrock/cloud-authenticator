@@ -1,19 +1,24 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { OtpAlgorithm } from '../types'
+
+export type AddAccountInput = {
+  secret: string
+  issuer: string
+  account: string
+  algorithm: OtpAlgorithm
+  digits: number
+  period: number
+  group: string
+  tags: string
+  pushToRepo: boolean
+}
 
 type Props = {
   open: boolean
   onClose: () => void
-  onAdd: (input: {
-    secret: string
-    issuer: string
-    account: string
-    algorithm: OtpAlgorithm
-    digits: number
-    period: number
-    group: string
-    tags: string
-  }) => boolean
+  /** True when a GitHub token is configured (enables default push-to-repo). */
+  hasRepoToken: boolean
+  onAdd: (input: AddAccountInput) => boolean | Promise<boolean>
 }
 
 const empty = {
@@ -27,16 +32,35 @@ const empty = {
   tags: '',
 }
 
-export function AddAccountPanel({ open, onClose, onAdd }: Props) {
+export function AddAccountPanel({
+  open,
+  onClose,
+  hasRepoToken,
+  onAdd,
+}: Props) {
   const [form, setForm] = useState(empty)
+  const [pushToRepo, setPushToRepo] = useState(hasRepoToken)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setPushToRepo(hasRepoToken)
+    }
+  }, [open, hasRepoToken])
 
   if (!open) return null
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
-    if (onAdd(form)) {
-      setForm(empty)
-      onClose()
+    setBusy(true)
+    try {
+      const ok = await onAdd({ ...form, pushToRepo })
+      if (ok) {
+        setForm(empty)
+        onClose()
+      }
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -54,7 +78,7 @@ export function AddAccountPanel({ open, onClose, onAdd }: Props) {
             ×
           </button>
         </header>
-        <form className="form" onSubmit={submit}>
+        <form className="form" onSubmit={(e) => void submit(e)}>
           <label>
             Secret (Base32)
             <input
@@ -141,8 +165,37 @@ export function AddAccountPanel({ open, onClose, onAdd }: Props) {
               placeholder="cloud, personal"
             />
           </label>
-          <button type="submit" className="btn btn--primary btn--block">
-            Save account
+
+          <label className="checkbox-field">
+            <input
+              type="checkbox"
+              checked={pushToRepo}
+              onChange={(e) => setPushToRepo(e.target.checked)}
+              disabled={!hasRepoToken}
+            />
+            <span>
+              Also save to repo (<code>seedAccounts.ts</code>)
+              {!hasRepoToken ? (
+                <span className="checkbox-field__hint">
+                  {' '}
+                  — set a GitHub token in Git sync first
+                </span>
+              ) : null}
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            className="btn btn--primary btn--block"
+            disabled={busy}
+          >
+            {busy
+              ? pushToRepo
+                ? 'Adding & pushing…'
+                : 'Saving…'
+              : pushToRepo
+                ? 'Add & push to repo'
+                : 'Save account'}
           </button>
         </form>
       </aside>

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Account, AppSettings, GroupBy, OtpAlgorithm } from '../types'
+import type {
+  Account,
+  AppSettings,
+  GroupBy,
+  OtpAlgorithm,
+  StatusMessage,
+} from '../types'
 import { mergeAccountsFromImport, fetchGitTxt } from '../lib/gitSync'
 import {
   createId,
@@ -10,12 +16,13 @@ import {
 } from '../lib/storage'
 import { normalizeSecret } from '../lib/totp'
 import { syncClockWithGoogle } from '../lib/timeSync'
+import { pushSeedUriToRepo } from '../lib/seedRepoPush'
 
 export function useAuthenticator() {
   const [accounts, setAccounts] = useState<Account[]>(() => loadAccounts())
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings())
   const [filter, setFilter] = useState('')
-  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null)
 
   useEffect(() => {
     saveAccounts(accounts)
@@ -25,9 +32,9 @@ export function useAuthenticator() {
     saveSettings(settings)
   }, [settings])
 
-  const flash = useCallback((msg: string) => {
-    setStatusMessage(msg)
-    window.setTimeout(() => setStatusMessage(null), 4000)
+  const flash = useCallback((msg: string | StatusMessage) => {
+    setStatusMessage(typeof msg === 'string' ? { text: msg } : msg)
+    window.setTimeout(() => setStatusMessage(null), 6000)
   }, [])
 
   const updateSettings = useCallback((patch: Partial<AppSettings>) => {
@@ -35,7 +42,7 @@ export function useAuthenticator() {
   }, [])
 
   const addAccount = useCallback(
-    (input: {
+    async (input: {
       secret: string
       issuer: string
       account: string
@@ -44,6 +51,7 @@ export function useAuthenticator() {
       period: number
       group: string
       tags: string
+      pushToRepo?: boolean
     }) => {
       const secret = normalizeSecret(input.secret)
       if (!secret) {
@@ -61,13 +69,16 @@ export function useAuthenticator() {
         .map((t) => t.trim())
         .filter(Boolean)
 
+      const issuer = input.issuer.trim()
+      const accountName = input.account.trim()
+
       setAccounts((prev) => [
         ...prev,
         {
           id: createId(),
           secret,
-          issuer: input.issuer.trim(),
-          account: input.account.trim(),
+          issuer,
+          account: accountName,
           algorithm: input.algorithm,
           digits: input.digits,
           period: input.period,
@@ -78,10 +89,55 @@ export function useAuthenticator() {
           updatedAt: now,
         },
       ])
-      flash('Account added')
+
+      if (!input.pushToRepo) {
+        flash('Account added')
+        return true
+      }
+
+      if (!settings.gitToken.trim()) {
+        flash('Account added locally — configure a GitHub token to push to the repo')
+        return true
+      }
+
+      const result = await pushSeedUriToRepo(
+        {
+          token: settings.gitToken,
+          owner: settings.seedRepoOwner,
+          repo: settings.seedRepoName,
+          branch: settings.seedRepoBranch,
+          path: settings.seedRepoPath,
+        },
+        {
+          secret,
+          issuer,
+          account: accountName,
+          algorithm: input.algorithm,
+          digits: input.digits,
+          period: input.period,
+        },
+      )
+
+      if (!result.ok) {
+        flash(`Account added locally — repo push failed: ${result.error}`)
+        return true
+      }
+
+      if (result.skipped) {
+        flash(
+          'Account added — secret already present in seedAccounts.ts (skipped push)',
+        )
+        return true
+      }
+
+      flash({
+        text: 'Account added and pushed to seedAccounts.ts. Pages will redeploy shortly.',
+        href: result.commitUrl ?? undefined,
+        hrefLabel: result.commitUrl ? 'View commit' : undefined,
+      })
       return true
     },
-    [accounts, flash],
+    [accounts, flash, settings],
   )
 
   const updateAccount = useCallback(
@@ -180,12 +236,7 @@ export function useAuthenticator() {
     const q = filter.trim().toLowerCase()
     if (!q) return accounts
     return accounts.filter((a) => {
-      const hay = [
-        a.issuer,
-        a.account,
-        a.group,
-        ...a.tags,
-      ]
+      const hay = [a.issuer, a.account, a.group, ...a.tags]
         .join(' ')
         .toLowerCase()
       return hay.includes(q)
@@ -235,5 +286,6 @@ export function useAuthenticator() {
     syncClock,
     setGroupBy,
     updateSettings,
+    flash,
   }
 }

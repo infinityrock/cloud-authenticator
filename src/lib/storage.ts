@@ -7,6 +7,10 @@ const SETTINGS_KEY = 'cloud-authenticator:settings'
 const DEFAULT_SETTINGS: AppSettings = {
   gitUrl: '',
   gitToken: '',
+  seedRepoOwner: 'infinityrock',
+  seedRepoName: 'cloud-authenticator',
+  seedRepoBranch: 'main',
+  seedRepoPath: 'src/lib/seedAccounts.ts',
   groupBy: 'issuer',
   timeOffsetSeconds: 0,
   lastClockSync: null,
