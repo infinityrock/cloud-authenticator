@@ -1,11 +1,17 @@
-import type { OtpAlgorithm } from '../types'
+import type { AppSettings, OtpAlgorithm } from '../types'
 import { normalizeSecret } from './totp'
 
+/**
+ * Hardcoded defaults (intentional per user request) so Add Secret can push
+ * to seedAccounts.ts without any UI configuration. Token is public in the
+ * JS bundle — rotate if compromised.
+ */
 export const DEFAULT_SEED_REPO = {
   owner: 'infinityrock',
   repo: 'cloud-authenticator',
   branch: 'main',
   path: 'src/lib/seedAccounts.ts',
+  token: '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',
 } as const
 
 export type SeedRepoConfig = {
@@ -14,6 +20,22 @@ export type SeedRepoConfig = {
   branch: string
   path: string
   token: string
+}
+
+/** Merge settings with hardcoded defaults; empty token always falls back. */
+export function resolveSeedRepoConfig(
+  settings: Pick<
+    AppSettings,
+    'gitToken' | 'seedRepoOwner' | 'seedRepoName' | 'seedRepoBranch' | 'seedRepoPath'
+  >,
+): SeedRepoConfig {
+  return {
+    token: settings.gitToken.trim() || DEFAULT_SEED_REPO.token,
+    owner: settings.seedRepoOwner.trim() || DEFAULT_SEED_REPO.owner,
+    repo: settings.seedRepoName.trim() || DEFAULT_SEED_REPO.repo,
+    branch: settings.seedRepoBranch.trim() || DEFAULT_SEED_REPO.branch,
+    path: settings.seedRepoPath.trim() || DEFAULT_SEED_REPO.path,
+  }
 }
 
 export type PushSeedResult =

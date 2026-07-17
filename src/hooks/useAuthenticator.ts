@@ -16,7 +16,11 @@ import {
 } from '../lib/storage'
 import { normalizeSecret } from '../lib/totp'
 import { syncClockWithGoogle } from '../lib/timeSync'
-import { pushSeedUriToRepo } from '../lib/seedRepoPush'
+import {
+  DEFAULT_SEED_REPO,
+  pushSeedUriToRepo,
+  resolveSeedRepoConfig,
+} from '../lib/seedRepoPush'
 
 export function useAuthenticator() {
   const [accounts, setAccounts] = useState<Account[]>(() => loadAccounts())
@@ -95,28 +99,20 @@ export function useAuthenticator() {
         return true
       }
 
-      if (!settings.gitToken.trim()) {
+      const seedConfig = resolveSeedRepoConfig(settings)
+      if (!seedConfig.token) {
         flash('Account added locally — configure a GitHub token to push to the repo')
         return true
       }
 
-      const result = await pushSeedUriToRepo(
-        {
-          token: settings.gitToken,
-          owner: settings.seedRepoOwner,
-          repo: settings.seedRepoName,
-          branch: settings.seedRepoBranch,
-          path: settings.seedRepoPath,
-        },
-        {
-          secret,
-          issuer,
-          account: accountName,
-          algorithm: input.algorithm,
-          digits: input.digits,
-          period: input.period,
-        },
-      )
+      const result = await pushSeedUriToRepo(seedConfig, {
+        secret,
+        issuer,
+        account: accountName,
+        algorithm: input.algorithm,
+        digits: input.digits,
+        period: input.period,
+      })
 
       if (!result.ok) {
         flash(`Account added locally — repo push failed: ${result.error}`)
@@ -179,7 +175,9 @@ export function useAuthenticator() {
   const syncFromGit = useCallback(
     async (override?: { gitUrl?: string; gitToken?: string }) => {
       const gitUrl = (override?.gitUrl ?? settings.gitUrl).trim()
-      const gitToken = override?.gitToken ?? settings.gitToken
+      const gitToken =
+        (override?.gitToken ?? settings.gitToken).trim() ||
+        DEFAULT_SEED_REPO.token
       if (!gitUrl) {
         flash('Configure a Git TXT URL first')
         return

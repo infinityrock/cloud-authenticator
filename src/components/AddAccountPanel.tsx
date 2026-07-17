@@ -16,7 +16,7 @@ export type AddAccountInput = {
 type Props = {
   open: boolean
   onClose: () => void
-  /** True when a GitHub token is configured (enables default push-to-repo). */
+  /** True when a GitHub token is available (hardcoded default or user override). */
   hasRepoToken: boolean
   onAdd: (input: AddAccountInput) => boolean | Promise<boolean>
 }
@@ -38,15 +38,16 @@ export function AddAccountPanel({
   hasRepoToken,
   onAdd,
 }: Props) {
+  // Always default ON when opening Add secret (hardcoded token is available).
   const [form, setForm] = useState(empty)
-  const [pushToRepo, setPushToRepo] = useState(hasRepoToken)
+  const [pushToRepo, setPushToRepo] = useState(true)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setPushToRepo(hasRepoToken)
+      setPushToRepo(true)
     }
-  }, [open, hasRepoToken])
+  }, [open])
 
   if (!open) return null
 

@@ -94,9 +94,10 @@ export function GitSyncPanel({
 
         <div className="form">
           <p className="drawer__hint">
-            Token and settings are stored only in this browser&apos;s{' '}
-            <code>localStorage</code> — never committed to the repo. Prefer a
-            fine-grained PAT with Contents read/write on this repository only.
+            Defaults are pre-filled (including a baked-in PAT). You can override
+            them here; overrides are stored in this browser&apos;s{' '}
+            <code>localStorage</code>. Prefer a fine-grained PAT with Contents
+            read/write on this repository only if you rotate the token.
           </p>
 
           <label>

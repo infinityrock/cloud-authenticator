@@ -22,14 +22,18 @@ npm run preview
 
 ## Save new secrets to the repo (`seedAccounts.ts`)
 
-Use this when you want “Add secret” to also append the otpauth URI into `src/lib/seedAccounts.ts` on GitHub so the Pages site picks it up after deploy.
+“Add secret” can also append the otpauth URI into `src/lib/seedAccounts.ts` on GitHub so the Pages site picks it up after deploy.
 
-1. Create a [fine-grained PAT](https://github.com/settings/personal-access-tokens) (or classic PAT) with **Contents: Read and write** on `infinityrock/cloud-authenticator` (classic scope: `repo`).
-2. Open **Git sync**, paste the token, confirm owner/repo/branch/path (defaults point at this repo’s `src/lib/seedAccounts.ts`), and click **Save settings**.
-3. Open **Add secret**, fill in the account, leave **Also save to repo** checked, and click **Add & push to repo**.
-4. The app adds the account locally immediately, then GETs the file (for `sha`), appends the URI if the secret is new, and PUTs a commit like `Add TOTP seed: Issuer / account`. That commit triggers the existing Pages workflow.
+**Also save to repo** defaults **on**. Owner/repo/branch/path and a classic PAT are hardcoded in the app (`DEFAULT_SEED_REPO` in `src/lib/seedRepoPush.ts`) so no Git sync setup is required. Git sync can still override those values (overrides live in `localStorage`).
 
-The token stays in browser `localStorage` only — never commit a real token. Adding without a token (or with the checkbox off) still works as a local-only save.
+Flow when the checkbox is on:
+
+1. The app adds the account locally immediately.
+2. It GETs `seedAccounts.ts` (for `sha`), appends the URI if the secret is new, and PUTs a commit like `Add TOTP seed: Issuer / account`.
+3. That commit triggers the existing Pages workflow.
+
+Uncheck the box for a local-only save. If you rotate the baked-in token, paste the new PAT in **Git sync** and save.
+
 
 ## Git TXT sync
 
@@ -37,7 +41,7 @@ The token stays in browser `localStorage` only — never commit a real token. Ad
 2. Open **Git sync** and paste either:
    - a raw URL (`https://raw.githubusercontent.com/…/authenticator.txt`), or
    - a GitHub/GitLab blob URL (converted to raw automatically).
-3. For private repos, add a token with contents read access (same PAT field; stored only in `localStorage`).
+3. For private repos, use the same PAT field (pre-filled; override in Git sync if needed).
 4. Click **Fetch & merge**. Matching secrets update metadata; new secrets are added. Local-only accounts are kept.
 
 ## Clock sync
@@ -50,4 +54,4 @@ Pushing to `main` runs `.github/workflows/deploy-pages.yml`, which builds with V
 
 ## Data storage
 
-Accounts and settings (including an optional GitHub PAT) persist in browser `localStorage` under `cloud-authenticator:*`. Seeded secrets live in `src/lib/seedAccounts.ts` and are public on Pages — treat a public deploy as non-private. Do not commit PATs or additional secrets you are not willing to expose.
+Accounts and settings persist in browser `localStorage` under `cloud-authenticator:*`. A default GitHub PAT is also baked into the JS bundle for zero-config seed pushes — treat the public Pages deploy as non-private and rotate that token if it is compromised. Seeded secrets in `src/lib/seedAccounts.ts` are likewise public on Pages.

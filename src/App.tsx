@@ -6,6 +6,7 @@ import { AddAccountPanel } from './components/AddAccountPanel'
 import { GitSyncPanel } from './components/GitSyncPanel'
 import { ImportPanel } from './components/ImportPanel'
 import { useAuthenticator } from './hooks/useAuthenticator'
+import { resolveSeedRepoConfig } from './lib/seedRepoPush'
 import './App.css'
 
 type Panel = 'add' | 'git' | 'import' | null
@@ -14,6 +15,7 @@ export default function App() {
   const auth = useAuthenticator()
   const [panel, setPanel] = useState<Panel>(null)
   const [clockBusy, setClockBusy] = useState(false)
+  const seedRepo = resolveSeedRepoConfig(auth.settings)
 
   async function handleClockSync() {
     setClockBusy(true)
@@ -91,7 +93,7 @@ export default function App() {
       <AddAccountPanel
         open={panel === 'add'}
         onClose={() => setPanel(null)}
-        hasRepoToken={Boolean(auth.settings.gitToken.trim())}
+        hasRepoToken={Boolean(seedRepo.token)}
         onAdd={auth.addAccount}
       />
 
@@ -99,17 +101,17 @@ export default function App() {
         open={panel === 'git'}
         onClose={() => setPanel(null)}
         gitUrl={auth.settings.gitUrl}
-        gitToken={auth.settings.gitToken}
+        gitToken={seedRepo.token}
         lastGitSync={auth.settings.lastGitSync}
         seedRepo={{
-          owner: auth.settings.seedRepoOwner,
-          repo: auth.settings.seedRepoName,
-          branch: auth.settings.seedRepoBranch,
-          path: auth.settings.seedRepoPath,
+          owner: seedRepo.owner,
+          repo: seedRepo.repo,
+          branch: seedRepo.branch,
+          path: seedRepo.path,
         }}
         onSaveConfig={(config) => {
           auth.updateSettings(config)
-          auth.flash('Git / seed repo settings saved (token stays in this browser only)')
+          auth.flash('Git / seed repo settings saved')
         }}
         onSync={async (gitUrl, gitToken) => {
           await auth.syncFromGit({ gitUrl, gitToken })
